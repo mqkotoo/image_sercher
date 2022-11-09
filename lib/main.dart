@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 void main() {
   runApp(const MyApp());
@@ -30,25 +34,75 @@ class ImageSearcher extends StatefulWidget {
 
 class _ImageSearcherState extends State<ImageSearcher> {
 
+  List imageList = [];
 
-  Future<void> fetchImages() async {
+  Future<void> fetchImages(String inputText) async {
     Response response = await Dio().get(
-      'https://pixabay.com/api/?key=31191150-fa99e18e1c4e6f5ca749a2e6a&q=yellow+flowers&image_type=photo&pretty=true',
+      'https://pixabay.com/api/?key=31191150-fa99e18e1c4e6f5ca749a2e6a&per_page=100&q=$inputText&image_type=photo&pretty=true',
     );
-    print(response.data);
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    fetchImages();
+    imageList = response.data['hits'];
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
-      body: Container(),
+      appBar: AppBar(
+        title: TextFormField(
+          decoration: const InputDecoration(
+            fillColor: Colors.white,
+            filled: true,
+          ),
+          onFieldSubmitted: (text) {
+            fetchImages(text);
+          },
+        ),
+      ),
+      body: GridView.builder(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+          ),
+          itemCount: imageList.length,
+          itemBuilder: (context, index) {
+            Map<String, dynamic> image = imageList[index];
+            return InkWell(
+              onTap: () async{
+                Directory directory = await getTemporaryDirectory();
+                Response response = await Dio().get(image['webformatURL'],
+                  options: Options(
+                    responseType: ResponseType.bytes,
+                  )
+                );
+                File file = File('${directory.path}/image.png');
+                await file.writeAsBytes(response.data);
+
+                await Share.shareFiles([file.path]);
+              },
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.network(image['previewURL'],fit: BoxFit.cover),
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.favorite,color: Colors.pink),
+                          Text(image['likes'].toString()),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
     );
   }
 }
