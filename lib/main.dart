@@ -34,13 +34,14 @@ class ImageSearcher extends StatefulWidget {
 
 class _ImageSearcherState extends State<ImageSearcher> {
 
-  List imageList = [];
+  List<PixabayImage> imageList = [];
 
   Future<void> fetchImages(String inputText) async {
     final Response response = await Dio().get(
       'https://pixabay.com/api/?key=31191150-fa99e18e1c4e6f5ca749a2e6a&per_page=100&q=$inputText&image_type=photo&pretty=true',
     );
-    imageList = response.data['hits'];
+    final List hits = response.data['hits'];
+    imageList = hits.map((e) => PixabayImage.fromMap(e)).toList();
     setState(() {});
   }
 
@@ -77,15 +78,15 @@ class _ImageSearcherState extends State<ImageSearcher> {
           ),
           itemCount: imageList.length,
           itemBuilder: (context, index) {
-            Map<String, dynamic> image = imageList[index];
+            final image = imageList[index];
             return InkWell(
               onTap: () {
-                shareImage(image['webformatURL']);
+                shareImage(image.webformatURL);
               },
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(image['previewURL'],fit: BoxFit.cover),
+                  Image.network(image.previewURL,fit: BoxFit.cover),
                   Align(
                     alignment: Alignment.topLeft,
                     child: Container(
@@ -98,7 +99,7 @@ class _ImageSearcherState extends State<ImageSearcher> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(Icons.favorite,color: Colors.pink),
-                          Text(image['likes'].toString()),
+                          Text(image.likes.toString()),
                         ],
                       ),
                     ),
@@ -122,4 +123,11 @@ class PixabayImage {
     required this.webformatURL,
     });
 
+    factory PixabayImage.fromMap(Map<String,dynamic> map) {
+      return PixabayImage(
+        previewURL: map['previewURL'],
+        likes: map['likes'],
+        webformatURL: map['webformatURL'],
+      );
+    }
 }
