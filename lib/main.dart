@@ -37,11 +37,24 @@ class _ImageSearcherState extends State<ImageSearcher> {
   List imageList = [];
 
   Future<void> fetchImages(String inputText) async {
-    Response response = await Dio().get(
+    final Response response = await Dio().get(
       'https://pixabay.com/api/?key=31191150-fa99e18e1c4e6f5ca749a2e6a&per_page=100&q=$inputText&image_type=photo&pretty=true',
     );
     imageList = response.data['hits'];
     setState(() {});
+  }
+
+  Future<void> shareImage(url) async {
+    final Directory directory = await getTemporaryDirectory();
+                final Response response = await Dio().get(url,
+                  options: Options(
+                    responseType: ResponseType.bytes,
+                  )
+                );
+                final File file = File('${directory.path}/image.png');
+                await file.writeAsBytes(response.data);
+
+                await Share.shareFiles([file.path]);
   }
 
   @override
@@ -66,17 +79,8 @@ class _ImageSearcherState extends State<ImageSearcher> {
           itemBuilder: (context, index) {
             Map<String, dynamic> image = imageList[index];
             return InkWell(
-              onTap: () async{
-                Directory directory = await getTemporaryDirectory();
-                Response response = await Dio().get(image['webformatURL'],
-                  options: Options(
-                    responseType: ResponseType.bytes,
-                  )
-                );
-                File file = File('${directory.path}/image.png');
-                await file.writeAsBytes(response.data);
-
-                await Share.shareFiles([file.path]);
+              onTap: () {
+                shareImage(image['webformatURL']);
               },
               child: Stack(
                 fit: StackFit.expand,
@@ -105,4 +109,17 @@ class _ImageSearcherState extends State<ImageSearcher> {
           }),
     );
   }
+}
+
+class PixabayImage {
+  final String previewURL;
+  final int likes;
+  final String webformatURL;
+
+  PixabayImage({
+    required this.previewURL, 
+    required this.likes, 
+    required this.webformatURL,
+    });
+
 }
