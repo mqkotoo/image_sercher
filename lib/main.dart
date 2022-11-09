@@ -30,10 +30,18 @@ class ImageSearcher extends StatefulWidget {
 
 class _ImageSearcherState extends State<ImageSearcher> {
 
+
   Future<void> fetchImages() async {
     Response response = await Dio().get(
       'https://pixabay.com/api/?key=31191150-fa99e18e1c4e6f5ca749a2e6a&q=yellow+flowers&image_type=photo&pretty=true',
     );
+    print(response.data);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchImages();
   }
 
   @override
